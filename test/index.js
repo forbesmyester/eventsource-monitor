@@ -39,17 +39,25 @@ describe('EventSourceMonitor',function() {
 	
 	var FakeEventSource = function(url) {
 		this._url = url;
+		this.readyState = 0;
 	};
 	
 	FakeEventSource.prototype.open = function() {
+		this.readyState = 1;
 		this.onopen({currentTarget: this});
 	};
 	
+	FakeEventSource.prototype.close = function() {
+		this.readyState = 2;
+	};
+	
 	FakeEventSource.prototype.pretendDisconnected = function() {
+		this.readyState = 2;
 		this.onerror({currentTarget: this});
 	};
 	
 	FakeEventSource.prototype.pretendMessage = function(msg) {
+		this.readyState = 1;
 		this.onmessage({
 			currentTarget: this,
 			data: JSON.stringify(msg)
@@ -63,50 +71,60 @@ describe('EventSourceMonitor',function() {
 		return eventSources[0];
 	};
 	
-	it('can connect, disconnect and connect again, firing events', function(done) {
-		var completed = [];
+	it('can change url before connection', function(done) {
 		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
-		eventSourceMonitor.on('added-managed-connection', function() {
-			completed.push('added-managed-connection');
-		});
-		eventSourceMonitor.on('removed-managed-connection', function() {
-			completed.push('removed-managed-connection');
+		eventSourceMonitor.on('added-managed-connection', function(evt) {
+			setTimeout(function() {
+				evt.conn.open();
+			},10);
 		});
 		eventSourceMonitor.on('connected', function(evt) {
+			expect(evt.url).to.equal('two');
+			done();
+		});
+		eventSourceMonitor.changeUrl('two');
+		eventSourceMonitor.connect();
+	});
+	it('can connect, disconnect and connect again, firing events', function(done) {
+		var completed = [];
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
+		eventSourceMonitor.on('added-managed-connection', function(evt) {
+			evt.conn.open();
+		});
+		eventSourceMonitor.once('connected', function(evt) {
 			completed.push('connected-event');
 			expect(evt.url).to.equal('one');
 			eventSources[0].pretendDisconnected();
 		});
-		eventSourceMonitor.on('disconnected', function(evt) {
+		eventSourceMonitor.once('disconnected', function(evt) {
 			completed.push('disconnected-event');
 			expect(evt.url).to.equal('one');
-			expect(completed).to.eql([
-				'added-managed-connection',
-				'connected-event',
-				'disconnected-event'
-			]);
-			done();
+			eventSourceMonitor.once('connected', function() {
+				completed.push('reconnected');
+				expect(evt.url).to.equal('one');
+				expect(completed).to.eql([
+					'connected-event',
+					'disconnected-event',
+					'reconnected'
+				]);
+				done();
+			});
+			eventSourceMonitor.connect();
+			
 		});
-		eventSourceMonitor.connect('one');
-		eventSources[0].open();
+		eventSourceMonitor.connect();
 	});
 	
 	it('can be requested to disconnect', function(done) {
 		var completed = [];
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		eventSourceMonitor.on('added-managed-connection', function() {
 			completed.push('added-managed-connection');
-		});
-		eventSourceMonitor.on('removed-managed-connection', function() {
-			completed.push('removed-managed-connection');
 		});
 		eventSourceMonitor.on('connected', function(evt) {
 			completed.push('connected-event');
 			expect(evt.url).to.equal('one');
-			eventSourceMonitor.disconnect(function(err) {
-				completed.push('disconnected-callback');
-				expect(err).to.equal(null);
-			});
+			eventSourceMonitor.disconnect();
 		});
 		eventSourceMonitor.on('disconnected', function(evt) {
 			completed.push('disconnected-event');
@@ -118,13 +136,13 @@ describe('EventSourceMonitor',function() {
 			]);
 			done();
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 		eventSources[0].open();
 	});
 	
 	it('can change urls, and change urls back (open before change)', function(done) {
 		var completed = [];
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		eventSourceMonitor.on('added-managed-connection', function(evt) {
 			completed.push('added-managed-connection');
 			evt.conn.open();
@@ -162,12 +180,12 @@ describe('EventSourceMonitor',function() {
 			});
 			eventSourceMonitor.changeUrl('one');
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 	});
 
 	it('can change urls, and change urls back (open after change)', function(done) {
 		var completed = [];
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		eventSourceMonitor.on('added-managed-connection', function() {
 			completed.push('added-managed-connection');
 		});
@@ -184,12 +202,12 @@ describe('EventSourceMonitor',function() {
 		eventSourceMonitor.once('url-changed-was-online', function() {
 			expect().fail();
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 		eventSources[0].open('one');
 	});
 
 	it('can route messages (one connection)', function(done) {
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		eventSourceMonitor.on('added-managed-connection', function(evt) {
 			evt.conn.open();
 		});
@@ -201,11 +219,11 @@ describe('EventSourceMonitor',function() {
 			expect(data.m).to.equal('one');
 			done();
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 	});
 	
 	it('will only route messages from the current', function(done) {
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		eventSourceMonitor.on('added-managed-connection', function(evt) {
 			evt.conn.open();
 		});
@@ -219,11 +237,11 @@ describe('EventSourceMonitor',function() {
 			expect(data.m).to.equal('two');
 			done();
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 	});
 	
 	it('will still route messages from first connection if waiting for the second connection', function(done) {
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
 		var i = 0;
 		eventSourceMonitor.on('added-managed-connection', function(evt) {
 			if (i++ === 0) {
@@ -239,7 +257,7 @@ describe('EventSourceMonitor',function() {
 			expect(data.m).to.equal('one');
 			done();
 		});
-		eventSourceMonitor.connect('one');
+		eventSourceMonitor.connect();
 	});
 	
 });
