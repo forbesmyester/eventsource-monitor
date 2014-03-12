@@ -1,14 +1,12 @@
 {
-  "name": "LocalStorageHashMap",
+  "name": "eventsource-monitor",
   "version": "0.9.0",
-  "description": "Abstraction of a HashMap stored within LocalStorage",
+  "description": "Monitors and manages EventSource, which amounts to making the API a little easier for my case and adding the ability to switch URLs",
   "authors": ["Matthew Forrester <matt@keyboardwritescode.com>"],
-  "homepage": "https://github.com/forbesmyester/LocalStorageHashMap",
+  "homepage": "https://github.com/forbesmyester/eventsource-monitor",
   "main": "index.js",
   "keywords": [
-    "localStorage",
-    "HashMap",
-    "Data"
+    "EventSource"
   ],
   "license": "MIT",
   "ignore": [
