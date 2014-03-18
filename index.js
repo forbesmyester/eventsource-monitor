@@ -3,7 +3,7 @@
 	if (typeof exports === 'object') {
 		module.exports = factory(require('add-events'));
 	} else if (typeof define === 'function' && define.amd) {
-		define(['add-events/index'],factory);
+		define(['add-events'],factory);
 	} else {
 		root.EventSourceMonitor = factory(root.addEvents);
 	}
