@@ -1,6 +1,6 @@
 {
   "name": "eventsource-monitor",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Monitors and manages EventSource, which amounts to making the API a little easier for my case and adding the ability to switch URLs",
   "authors": ["Matthew Forrester <matt@keyboardwritescode.com>"],
   "homepage": "https://github.com/forbesmyester/eventsource-monitor",
