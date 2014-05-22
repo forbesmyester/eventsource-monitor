@@ -24,7 +24,7 @@
 		// Browser globals (root is window)
 		root.returnExports = factory(
 			root.expect,
-			root.eventsourcemonitor
+			root.EventsourceMonitor
 		);
 	}
 }(this, function (
