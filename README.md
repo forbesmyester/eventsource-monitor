@@ -28,10 +28,22 @@ EventSource has a good few events which it can fire to tell you what is happenin
 
 	eventSourceMonitor.connect();
 
+Of course you need to get the messages which are sent to you by the EventSource:
+
+	eventSourceMonitor.on('messaged', function(data) {
+		console.log(
+			"The following data was messaged: " +
+			JSON.stringify(data)
+		);
+	});
+
 Where EventSourceMonitor monitor becomes useful that it will manage changing of the URL you are connected to, note that EventSourceMonitor will continue to route events from the existing connection until the new connection is established.
 
 	eventSourceMonitor.on('url-changed-was-online', function(evt) {
 		console.log("The URL we are listening to events on has been changed to " + evt.url);
+	});
+	eventSourceMonitor.on('url-changed', function(evt) {
+		console.log("The 'url-changed' event will also be fired");
 	});
 	eventSourceMonitor.changeUrl(
 		'http://yourdomain.com/eventsource?datasets[]=ds21&datasets[]=46&datasets[]=94'
@@ -52,6 +64,9 @@ You can also change urls when you are disconnected:
 			"events on has been changed to '" + evt.url + "
 		);
 	});
+	eventSourceMonitor.on('url-changed', function(evt) {
+		console.log("The 'url-changed' event will always be fired, even if offline");
+	});
 	eventSourceMonitor.changeUrl(
 		'http://yourdomain.com/eventsource?datasets[]=ds21&datasets[]=46&datasets[]=94'
 	);
@@ -59,6 +74,14 @@ You can also change urls when you are disconnected:
 If you want to reconnect!
 
 	eventSourceMonitor.connect();
+
+## Other Events
+
+The following extra events are exposed:
+
+ * added-managed-connection: An EventSource has been added, which is probably not connected.
+ * removed-managed-connection: An EventSource has been removed due to url changes.
+ * url-change-started: We have started to change the URL we are connected to.
 
 ## Source Code
 
