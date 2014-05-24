@@ -1,0 +1,2 @@
+#!/bin/sh
+browserify  -s EventsourceMonitor index.js > index.umd.js
