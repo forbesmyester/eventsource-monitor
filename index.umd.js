@@ -6,6 +6,7 @@ module.exports = (function (addEvents) {
 var SSEM = function(sseFactory, url) {
 	this._sseFactory = sseFactory;
 	this._connections = [];
+	this._oldUrl = null;
 	this._url = url;
 	this._externalThinksConnected = false;
 	this._externalWantsConnected = false;
@@ -38,7 +39,7 @@ SSEM.prototype._inspectForUrlChange = function() {
 		connectedCount = 0;
 	
 	if (this._connections.length < 2) {
-		return;
+		emitObj.old_url = this._oldUrl;
 	}
 	
 	this._emit('url-changed', emitObj);
@@ -200,6 +201,7 @@ SSEM.prototype.changeUrl = function(url) {
 		;
 	
 	if (!this._connections.length) {
+		this._oldUrl = this._url;
 		this._url = url;
 		if (this._externalWantsConnected) {
 			this._addConnection();
@@ -217,6 +219,7 @@ SSEM.prototype.changeUrl = function(url) {
 		url: url
 	});
 	
+	this._oldUrl = this._url;
 	this._url = url;
 	
 	if (pos === -1) { // If it is not found just exit

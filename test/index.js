@@ -72,7 +72,8 @@ describe('EventSourceMonitor',function() {
 	};
 	
 	it('can change url before connection', function(done) {
-		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory);
+		var eventSourceMonitor = new EventSourceMonitor(eventSourceFactory, 'one');
+		var changed = false;
 		eventSourceMonitor.on('added-managed-connection', function(evt) {
 			setTimeout(function() {
 				evt.conn.open();
@@ -80,7 +81,13 @@ describe('EventSourceMonitor',function() {
 		});
 		eventSourceMonitor.on('connected', function(evt) {
 			expect(evt.url).to.equal('two');
+			expect(changed).to.equal(true);
 			done();
+		});
+		eventSourceMonitor.on('url-changed-was-offline', function(evt) {
+			expect(evt.url).to.equal('two');
+			expect(evt.old_url).to.equal('one');
+			changed = true;
 		});
 		eventSourceMonitor.changeUrl('two');
 		eventSourceMonitor.connect();
